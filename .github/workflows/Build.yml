@@ -180,7 +180,7 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            runs-on: macos-13
+            runs-on: macos-15-intel
           - arch: arm64
             runs-on: macos-latest
     runs-on: ${{ matrix.runs-on }}
