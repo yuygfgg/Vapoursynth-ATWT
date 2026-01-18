@@ -45,11 +45,11 @@ constexpr int mirror_boundary(int pos, int max_pos) noexcept {
 }
 
 template <typename T>
-void conv_h(const T* src, float* dst, int width, int height,
-            ptrdiff_t src_stride, int step) {
+void conv_h(const T* VS_RESTRICT src, float* VS_RESTRICT dst, int width,
+            int height, ptrdiff_t src_stride, int step) {
     for (int y = 0; y < height; ++y) {
-        const T* src_row = src + (y * src_stride);
-        float* dst_row = dst + (y * width);
+        const T* VS_RESTRICT src_row = src + (y * src_stride);
+        float* VS_RESTRICT dst_row = dst + (y * width);
 
         for (int x = 0; x < width; ++x) {
             float sum = 0.0F;
@@ -64,7 +64,8 @@ void conv_h(const T* src, float* dst, int width, int height,
 }
 
 template <typename T>
-void conv_v_and_extract(const float* temp_src, const T* orig_src, T* dst,
+void conv_v_and_extract(const float* VS_RESTRICT temp_src,
+                        const T* VS_RESTRICT orig_src, T* VS_RESTRICT dst,
                         int width, int height, ptrdiff_t src_stride,
                         ptrdiff_t dst_stride, int step,
                         const VSVideoFormat* fi) {
@@ -73,8 +74,8 @@ void conv_v_and_extract(const float* temp_src, const T* orig_src, T* dst,
     const float max_val = get_max<T>(fi);
 
     for (int y = 0; y < height; ++y) {
-        const T* src_row = orig_src + (y * src_stride);
-        T* dst_row = dst + (y * dst_stride);
+        const T* VS_RESTRICT src_row = orig_src + (y * src_stride);
+        T* VS_RESTRICT dst_row = dst + (y * dst_stride);
 
         for (int x = 0; x < width; ++x) {
             float sum = 0.0F;
@@ -120,16 +121,18 @@ void process_extract_plane(const VSFrame* src, VSFrame* dst, int plane,
     const ptrdiff_t src_stride = vsapi->getStride(src, plane) / sizeof(T);
     const ptrdiff_t dst_stride = vsapi->getStride(dst, plane) / sizeof(T);
 
-    const T* srcp = reinterpret_cast<const T*>(vsapi->getReadPtr(src, plane));
-    T* dstp = reinterpret_cast<T*>(vsapi->getWritePtr(dst, plane));
+    const T* VS_RESTRICT srcp =
+        reinterpret_cast<const T*>(vsapi->getReadPtr(src, plane));
+    T* VS_RESTRICT dstp = reinterpret_cast<T*>(vsapi->getWritePtr(dst, plane));
 
     int step = 1 << (radius - 1);
 
     std::vector<float> temp_buffer(static_cast<size_t>(width) * height);
+    float* VS_RESTRICT temp = temp_buffer.data();
 
-    conv_h<T>(srcp, temp_buffer.data(), width, height, src_stride, step);
-    conv_v_and_extract<T>(temp_buffer.data(), srcp, dstp, width, height,
-                          src_stride, dst_stride, step, fi);
+    conv_h<T>(srcp, temp, width, height, src_stride, step);
+    conv_v_and_extract<T>(temp, srcp, dstp, width, height, src_stride,
+                          dst_stride, step, fi);
 }
 
 const VSFrame* VS_CC ExtractGetFrame(int n, int activationReason,
@@ -243,7 +246,7 @@ void ProcessReplacePlane(const VSFrame* base, const VSFrame* detail,
     const T* basep = reinterpret_cast<const T*>(vsapi->getReadPtr(base, plane));
     const T* detailp =
         reinterpret_cast<const T*>(vsapi->getReadPtr(detail, plane));
-    T* dstp = reinterpret_cast<T*>(vsapi->getWritePtr(dst, plane));
+    T* VS_RESTRICT dstp = reinterpret_cast<T*>(vsapi->getWritePtr(dst, plane));
 
     const float neutral = get_neutral<T>(fi);
     const float max_val = get_max<T>(fi);
