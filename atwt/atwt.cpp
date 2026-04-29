@@ -230,9 +230,10 @@ void VS_CC ExtractCreate(const VSMap* in, VSMap* out,
     }
 
     VSFilterDependency deps[] = {{d->node, rpStrictSpatial}};
-    vsapi->createVideoFilter(out, "ExtractFrequency", &d->vi, ExtractGetFrame,
-                             ExtractFree, fmParallel, std::data(deps), 1,
-                             d.release(), core);
+    auto* data = d.release();
+    vsapi->createVideoFilter(out, "ExtractFrequency", &data->vi,
+                             ExtractGetFrame, ExtractFree, fmParallel,
+                             std::data(deps), 1, data, core);
 }
 
 template <typename T>
@@ -365,9 +366,10 @@ void VS_CC ReplaceCreate(const VSMap* in, VSMap* out,
 
     VSFilterDependency deps[] = {{d->base, rpStrictSpatial},
                                  {d->detail, rpStrictSpatial}};
-    vsapi->createVideoFilter(out, "ReplaceFrequency", &d->vi, ReplaceGetFrame,
-                             ReplaceFree, fmParallel, std::data(deps), 2,
-                             d.release(), core);
+    auto* data = d.release();
+    vsapi->createVideoFilter(out, "ReplaceFrequency", &data->vi,
+                             ReplaceGetFrame, ReplaceFree, fmParallel,
+                             std::data(deps), 2, data, core);
 }
 
 } // namespace
